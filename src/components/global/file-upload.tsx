@@ -1,8 +1,8 @@
 import React from "react";
-import Image from 'next/image'
+import Image from "next/image";
 import { Button } from "../ui/button";
 import { FileIcon, X } from "lucide-react";
-import { UploadDropzone } from "@uploadthing/react";
+import { UploadDropzone } from "@/lib/uploadthing";
 
 type Props = {
   apiEndpoint: "agencyLogo" | "avatar" | "subaccountLogo";
@@ -29,8 +29,10 @@ const FileUpload = ({ apiEndpoint, onChange, value }: Props) => {
             />
           </div>
         ) : (
-          <div className="relative flex items0center p-2 mt-2 rounded-md
-          bg-background/10">
+          <div
+            className="relative flex items0center p-2 mt-2 rounded-md
+          bg-background/10"
+          >
             <FileIcon />
             <a
               href={value}
@@ -38,32 +40,28 @@ const FileUpload = ({ apiEndpoint, onChange, value }: Props) => {
               rel="noopener_noreferrer"
               className="ml-2 text-sm text-indigo-500 dark:text-indigo-400 hover:underline"
             >
-                View PDF
+              View PDF
             </a>
           </div>
         )}
-        <Button
-        onClick={()=>onChange('')}
-            variant="ghost"
-            type="button"
-        >
-            <X className="h-4 w-4" />
-            Remove Logo
+        <Button onClick={() => onChange("")} variant="ghost" type="button">
+          <X className="h-4 w-4" />
+          Remove Logo
         </Button>
       </div>
     );
   }
   return (
     <div className="w-full bg-muted/30">
-        <UploadDropzone
-          endpoint={apiEndpoint}
-          onClientUploadComplete={(res) => {
-            onChange(res?.[0].url)
-          }}
-          onUploadError={(error: Error) => {
-            console.log(error)
-          }}
-        />
+      <UploadDropzone
+        endpoint={apiEndpoint}
+        onClientUploadComplete={(res: { url: string | undefined; }[]) => {
+          onChange(res?.[0].url);
+        }}
+        onUploadError={(error: Error) => {
+          console.log(error);
+        }}
+      />
     </div>
   );
 };
