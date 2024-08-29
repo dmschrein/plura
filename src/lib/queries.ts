@@ -1,7 +1,7 @@
 "use server";
 
 import { currentUser } from "@clerk/nextjs"; // Clerk's function to get the currently authenticated user
-import { db } from "./db"; // Import the database instance for querying 
+import { db } from "./db"; // Import the database instance for querying
 import { redirect } from "next/navigation"; //Next.js function to handle client-side redirects
 import { User } from "@prisma/client"; // Importing the User type from Prisma schema
 import { clerkClient } from "@clerk/nextjs/server"; // Server-side access to Clerk's API
@@ -138,7 +138,7 @@ export const createTeamUser = async (agencyId: string, user: User) => {
 export const verifyAndAcceptInvitation = async () => {
   const user = await currentUser(); // Get the current authenticated user
   if (!user) return redirect("/sign-in"); //Redirect to sign-in if no user is authenticated
-  
+
   // Check if there's a pending invitation for the user
   const invitationExists = await db.invitation.findUnique({
     where: {
@@ -167,7 +167,7 @@ export const verifyAndAcceptInvitation = async () => {
       subaccountId: undefined, // No subaccount ID in this case
     });
     if (userDetails) {
-        // Update user's role in Clerk's private metadata
+      // Update user's role in Clerk's private metadata
       await clerkClient.users.updateUserMetadata(user.id, {
         privateMetadata: {
           role: userDetails.role || "SUBACCOUNT_USER", // Default role if not specified
@@ -189,5 +189,101 @@ export const verifyAndAcceptInvitation = async () => {
       },
     });
     return agency ? agency.agencyId : null; // Return the agency ID or null if not found
+  }
+};
+
+export const updateAgencyDetails = async (
+  agencyId: string,
+  agencyDetails: Partial<Agency>
+) => {
+  const response = await db.agency.update({
+    where: { id: agencyId },
+    data: { ...agencyDetails },
+  });
+  return response;
+};
+
+export const deleteAgency = async (agencyId: string) => {
+  const response = await db.agency.delete({ where: { id: agencyId } });
+  return response;
+};
+
+export const initUser = async (newUser: Partial<User>) => {
+  const user = await currentUser();
+  if (!user) return;
+
+  const userData = await db.user.upsert({
+    where: {
+      email: user.emailAddresses[0].emailAddress,
+    },
+    update: newUser,
+    create: {
+      id: user.id,
+      avatarUrl: user.imageUrl,
+      email: user.emailAddresses[0].emailAddress,
+      name: `${user.firstName} ${user.lastName}`,
+      role: newUser.role || "SUBACCOUNT_USER",
+    },
+  });
+  await clerkClient.users.updateUserMetadata(user.id, {
+    privateMetadata: {
+      role: newUser.role || "SUBACCOUNT_USER",
+    },
+  });
+  return userData;
+};
+
+export const upsertAgency = async (agency: Agency, price?: Plan) => {
+  if (!agency.companyEmail) return null;
+  try {
+    const agencyDetails = await db.agency.upsert({
+      where: {
+        id: agency.id,
+      },
+      update: agency,
+      create: {
+        users: {
+          connect: { email: agency.companyEmail },
+        },
+        ...agency,
+        SidebarOption: {
+          create: [
+            {
+              name: "Dashboard",
+              icon: "category",
+              link: `/agency/${agency.id}`,
+            },
+            {
+              name: "Launchpad",
+              icon: "clipboardIcon",
+              link: `/agency/${agency.id}/launchpad`,
+            },
+            {
+              name: "Billing",
+              icon: "payment",
+              link: `/agency/${agency.id}/billing`,
+            },
+            {
+              name: "Settings",
+              icon: "settings",
+              link: `/agency/${agency.id}/settings`,
+            },
+            {
+              name: "Sub Accounts",
+              icon: "person",
+              link: `/agency/${agency.id}/all-subaccounts`,
+            },
+            {
+              name: "Team",
+              icon: "shield",
+              link: `/agency/${agency.id}/team`,
+            },
+          ],
+        },
+      },
+    });
+    return agencyDetails;
+  } catch (error) {
+    console.log(error);
   }
 };
