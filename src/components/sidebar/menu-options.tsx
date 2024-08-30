@@ -1,4 +1,4 @@
-"user client";
+"use client";
 
 import {
   Agency,
@@ -8,13 +8,21 @@ import {
 } from "@prisma/client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from "../ui/sheet";
 import { Button } from "../ui/button";
-import { ChevronsUpDown, Compass, Menu } from "lucide-react";
+import { ChevronsUpDown, Compass, Link, Menu } from "lucide-react";
 import { AspectRatio } from "../ui/aspect-ratio";
 import clsx from "clsx";
 import Image from "next/image";
-import { Popover, PopoverTrigger } from "../ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
 
 type Props = {
   defaultOpen?: boolean;
@@ -89,18 +97,83 @@ const MenuOptions = ({
               >
                 <div className="flex items-center text-left gap-2">
                   <Compass />
-                  <div className="flex flex-col">{details.name}
-                    <span className="text-muted-foreground">{details.address}</span>
+                  <div className="flex flex-col">
+                    {details.name}
+                    <span className="text-muted-foreground">
+                      {details.address}
+                    </span>
                   </div>
                 </div>
                 <div>
-                    <ChevronsUpDown
-                      size={16}
-                      className="text-muted-foreground"
-                    />
+                  <ChevronsUpDown size={16} className="text-muted-foreground" />
                 </div>
               </Button>
             </PopoverTrigger>
+            <PopoverContent className="w-80 h-80 mt-4 z-[200]">
+              {
+                <Command className="rounded-lg">
+                  <CommandInput placeholder="Search Accounts..." />
+                  <CommandList className="pb-16">
+                    <CommandEmpty>No results found</CommandEmpty>
+                    {(user?.role === "AGENCY_OWNER" ||
+                      user?.role === "AGENCY_ADMIN") &&
+                      user?.Agency && (
+                        <CommandGroup heading="Agency">
+                          <CommandItem
+                            className="!bg-transparent my-2
+                                        text-primary border-[1px] border-border p-2 rounded-md
+                                        hover:!bg-muted cursor-pointer transition-all"
+                          >
+                            {defaultOpen ? (
+                              <Link
+                                href={`/agency/${user?.Agency?.id}`}
+                                className="flex gap-4 w-full h-full"
+                              >
+                                <div className="relative w-16">
+                                  <Image
+                                    src={user?.Agency?.agencyLogo}
+                                    alt="Agency Logo"
+                                    fill
+                                    className="rounded-md object-contain"
+                                  />
+                                </div>
+                                <div className="flex flex-col flex-1">
+                                  {user?.Agency?.name}
+                                  <span className="text-muted-foreground">
+                                    {user?.Agency?.address}
+                                  </span>
+                                </div>
+                              </Link>
+                            ) : (
+                              <SheetClose asChild>
+                                <Link
+                                  href={`/agency/${user?.Agency?.id}`}
+                                  className="flex gap-4 w-full h-full"
+                                >
+                                  <div className="relative w-16">
+                                    <Image
+                                      src={user?.Agency?.agencyLogo}
+                                      alt="Agency Logo"
+                                      fill
+                                      className="rounded-md object-contain"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col flex-1">
+                                    {user?.Agency?.name}
+                                    <span className="text-muted-foreground">
+                                      {user?.Agency?.address}
+                                    </span>
+                                  </div>
+                                </Link>
+                              </SheetClose>
+                            )}
+                          </CommandItem>
+                        </CommandGroup>
+                      )}
+                  </CommandList>
+                </Command>
+              }
+            </PopoverContent>
           </Popover>
         </div>
       </SheetContent>
