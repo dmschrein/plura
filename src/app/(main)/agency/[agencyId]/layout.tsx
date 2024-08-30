@@ -1,3 +1,4 @@
+{/* src/app/(main)/agency/[agencyId]/layout.tsx */}
 import Unauthorized from "@/components/unauthorized";
 import { getNotificationAndUser, verifyAndAcceptInvitation } from "@/lib/queries";
 import { currentUser } from "@clerk/nextjs";
