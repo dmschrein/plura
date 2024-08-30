@@ -23,6 +23,7 @@ import {
   CommandItem,
   CommandList,
 } from "../ui/command";
+import { useModal } from "@/providers/modal-provider";
 
 type Props = {
   defaultOpen?: boolean;
@@ -43,6 +44,7 @@ const MenuOptions = ({
   user,
   subAccounts,
 }: Props) => {
+  const { setOpen } = useModal()
   const [isMounted, setIsMounted] = useState(false);
 
   const openState = useMemo(
@@ -224,8 +226,13 @@ const MenuOptions = ({
                 </CommandList>
                 {(user?.role === 'AGENCY_OWNER' ||
                   user?.role === 'AGENCY_ADMIN') && (
-                    <Button className="w-full flex gap-2">
-                        <PlusCircleIcon />
+                    <Button 
+                      className="w-full flex gap-2" 
+                      onClick={() => {
+                        setOpen(true)
+                      }}>
+                        <PlusCircleIcon size={15}/>
+                        Create Sub Account
                     </Button>
                 )}
               </Command>

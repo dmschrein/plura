@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
+import ModalProvider from "@/providers/modal-provider";
+import { Toaster } from '@/components/ui/toaster'
 
 const font = DM_Sans({ subsets: ["latin"] });
 
@@ -16,17 +18,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={font.className}>
         <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
         >
-          {children}
+          <ModalProvider>{children}
+            <Toaster/>
+          </ModalProvider>
         </ThemeProvider>
-        </body>
-      </html>
+      </body>
+    </html>
   );
 }
