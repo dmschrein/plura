@@ -1,8 +1,8 @@
-import React from 'react'
+import React from "react";
 
 type Props = {
-  children: React.ReactNode
-}
+  children: React.ReactNode;
+};
 
 const BlurPage = ({ children }: Props) => {
   return (
@@ -12,7 +12,7 @@ const BlurPage = ({ children }: Props) => {
     >
       {children}
     </div>
-  )
-}
+  );
+};
 
-export default BlurPage
+export default BlurPage;
