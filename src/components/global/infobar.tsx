@@ -71,6 +71,7 @@ const InfoBar = ({ notifications, subAccountId, className, role }: Props) => {
                   )}
                 </SheetDescription>
               </SheetHeader>
+              {/* Show notifications or no notifications alert*/}
               {allNotifications?.map((notification) => (
                 <div
                   key={notification.id}
