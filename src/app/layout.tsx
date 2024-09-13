@@ -3,12 +3,12 @@ import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import ModalProvider from "@/providers/modal-provider";
-import { Toaster } from '@/components/ui/toaster'
+import { Toaster } from "@/components/ui/toaster";
 
 const font = DM_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Plura",
+  title: "Evvie.ai",
   description: "All in one Agency Solution",
 };
 
@@ -26,8 +26,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ModalProvider>{children}
-            <Toaster/>
+          <ModalProvider>
+            {children}
+            <Toaster />
           </ModalProvider>
         </ThemeProvider>
       </body>
