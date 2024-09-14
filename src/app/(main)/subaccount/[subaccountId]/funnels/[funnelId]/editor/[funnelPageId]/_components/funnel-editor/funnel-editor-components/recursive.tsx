@@ -4,7 +4,7 @@ import TextComponent from "./text";
 import Container from "./container";
 import VideoComponent from "./video";
 import LinkComponent from "./link-component";
-import ContactFormComponent from "./contact-form-component";
+import ContactFormComponent from "./contact-form-components";
 import Checkout from "./checkout";
 
 type Props = {
