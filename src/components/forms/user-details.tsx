@@ -1,8 +1,4 @@
 "use client";
-
-{
-  /* Settings for User */
-}
 import {
   AuthUserWithAgencySigebarOptionsSubAccounts,
   UserWithPermissionsAndSubAccounts,
@@ -53,7 +49,6 @@ import Loading from "../global/loading";
 import { Separator } from "../ui/separator";
 import { Switch } from "../ui/switch";
 import { v4 } from "uuid";
-import { permission } from "process";
 
 type Props = {
   id: string | null;
@@ -63,55 +58,29 @@ type Props = {
 };
 
 const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
-  {
-    /* useState hook is used to create and manage a piece of state within the component
-    - declares a state variable 'subAccountPermissions` and corresponding setter function 
-    'setSubAccountsPermissions'
-    */
-  }
   const [subAccountPermissions, setSubAccountsPermissions] =
     useState<UserWithPermissionsAndSubAccounts | null>(null);
 
-  const { data, setClose } = useModal(); // Access data and setClose method from the modal provider
-  const [roleState, setRoleState] = useState(""); // useState to manage the state of the user's role and loading status for permissions
+  const { data, setClose } = useModal();
+  const [roleState, setRoleState] = useState("");
   const [loadingPermissions, setLoadingPermissions] = useState(false);
-  // state to store authenticated user's detailed data
   const [authUserData, setAuthUserData] =
     useState<AuthUserWithAgencySigebarOptionsSubAccounts | null>(null);
-  const { toast } = useToast(); // access the toast method to show notifications to the user
-  const router = useRouter(); // access the router to navigate programmatically
+  const { toast } = useToast();
+  const router = useRouter();
 
-  {
-    /* useEffect hook in a React component to perform a side effect when the data variable changes */
-  }
+  //Get authUSerDtails
+
   useEffect(() => {
     if (data.user) {
-      {
-        /* Conditional check: ensured that the code inside the 'if' block will only run if 'data.user' is truthy (exists adn is not null or undefined) */
-      }
       const fetchDetails = async () => {
-        {
-          /* if data.user is truthy, fetchDetails function is defined and immediatedly invoked. Function is asynchronous meaning it performs a network request or some other async operation */
-        }
         const response = await getAuthUserDetails();
-        {
-          /* getAuthUserDetails - API call or a function that retrieves detailed information about the auth user */
-        }
         if (response) setAuthUserData(response);
-        {
-          /* after 'getAuthUserDetails' resolves, the code checks if 'response' is truthy and if it is, 
-          'setAuthUserData' function is called with the 'response'. State setter and updates the component state with the fetched user details */
-        }
       };
       fetchDetails();
     }
   }, [data]);
-  {
-    /* dependency array configured to run whenever the data variable changes. The code inside the 'useEffect' will be executed whenever 'data' is updated */
-  }
-  {
-    /* Effect of the update - Zod schema to validate the user in the form- re-render with new data, displaying or using the fetched user details */
-  }
+
   const userDataSchema = z.object({
     name: z.string().min(1),
     email: z.string().email(),
@@ -124,17 +93,10 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
     ]),
   });
 
-  // useForm hook to manage form state and validation using react-hook-form
-  // The resolver option integrates Zod schema validation into the form
   const form = useForm<z.infer<typeof userDataSchema>>({
     resolver: zodResolver(userDataSchema),
-    mode: "onChange", // Validation is triggered on each change
+    mode: "onChange",
     defaultValues: {
-      // Set the form's default values based on userData or data.user
-      /* If userData is provided (i.e., it is truthy), the expression will use userData.name as the default value. 
-      If userData is not provided (i.e., it is falsy, such as null or undefined), the expression will fall back to 
-      data?.user?.name. The ?. (optional chaining) operator is used to safely access data.user.name, ensuring that 
-      the code doesn't throw an error if data or data.user is null or undefined.*/
       name: userData ? userData.name : data?.user?.name,
       email: userData ? userData.email : data?.user?.email,
       avatarUrl: userData ? userData.avatarUrl : data?.user?.avatarUrl,
@@ -142,17 +104,14 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
     },
   });
 
-  // used to fetch and set user permissions when certain conditions are met
   useEffect(() => {
-    // runs the enclosed code whenever the data or form dependencies change
     if (!data.user) return;
     const getPermissions = async () => {
-      // defines an async function to get permissions that will be used to fetch user permissions
       if (!data.user) return;
-      const permission = await getUserPermissions(data.user.id); // fetches the permissions for the user by calling the getUserPermissions function with data.user.id as an argument.
-      setSubAccountsPermissions(permission); // updates the component's state with the fetched permissions
+      const permission = await getUserPermissions(data.user.id);
+      setSubAccountsPermissions(permission);
     };
-    getPermissions(); // invokes the 'getPermissions' function to trigger the process of fetching and setting the user permissions as soon as the effect runs
+    getPermissions();
   }, [data, form]);
 
   useEffect(() => {
@@ -190,6 +149,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
         )?.SubAccount.id,
       });
     }
+
     if (response) {
       toast({
         title: "Success",
@@ -214,7 +174,6 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
     setLoadingPermissions(false);
   };
 
-  // saving user information
   const onSubmit = async (values: z.infer<typeof userDataSchema>) => {
     if (!id) return;
     if (userData || data?.user) {
@@ -259,26 +218,25 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField //connects the ind form fields to 'react-hook-form' by using the controller - ensures that the form fields are controlled and validated according to the form state
+            <FormField
               disabled={form.formState.isSubmitting}
-              control={form.control} // passes the 'control' object from 'react-hook-form' to manage the field's value and validation
-              name="avatarUrl" // specifies the field name for 'avatarUrl'
-              render={(
-                { field } // render prop recieves an object containing the 'field' property. This field object incldues values like value and 'onChange' that are needed to control the form element
-              ) => (
+              control={form.control}
+              name="avatarUrl"
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Profile picture</FormLabel>
                   <FormControl>
                     <FileUpload
-                      apiEndpoint="avatar" // endpoint for file upload
-                      value={field.value} // current value of the file input
-                      onChange={field.onChange} // ensures that changes to the file input are properly tracked by the form state
+                      apiEndpoint="avatar"
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               disabled={form.formState.isSubmitting}
               control={form.control}
@@ -293,7 +251,6 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
                 </FormItem>
               )}
             />
-
             <FormField
               disabled={form.formState.isSubmitting}
               control={form.control}
@@ -321,8 +278,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
               name="role"
               render={({ field }) => (
                 <FormItem className="flex-1">
-                  <FormLabel>User Role</FormLabel>
-                  {/* Shad cn component */}
+                  <FormLabel> User Role</FormLabel>
                   <Select
                     disabled={field.value === "AGENCY_OWNER"}
                     onValueChange={(value) => {
@@ -374,7 +330,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
             {authUserData?.role === "AGENCY_OWNER" && (
               <div>
                 <Separator className="my-4" />
-                <FormLabel>User Permissions</FormLabel>
+                <FormLabel> User Permissions</FormLabel>
                 <FormDescription className="mb-4">
                   You can give Sub Account access to team member by turning on
                   access control for each Sub Account. This is only visible to
@@ -389,8 +345,7 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
                     return (
                       <div
                         key={subAccount.id}
-                        className="flex flex-col items-center
-                        justify-between rounded-lg border p-4"
+                        className="flex items-center justify-between rounded-lg border p-4"
                       >
                         <div>
                           <p>{subAccount.name}</p>
@@ -398,10 +353,14 @@ const UserDetails = ({ id, type, subAccounts, userData }: Props) => {
                         <Switch
                           disabled={loadingPermissions}
                           checked={subAccountPermissionsDetails?.access}
-                          onCheckedChange={(permissiong) => {
-                            onChangePermission;
+                          onCheckedChange={(permission) => {
+                            onChangePermission(
+                              subAccount.id,
+                              permission,
+                              subAccountPermissionsDetails?.id
+                            );
                           }}
-                        ></Switch>
+                        />
                       </div>
                     );
                   })}
