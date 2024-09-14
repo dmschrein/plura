@@ -1,13 +1,22 @@
 "use client";
-import React, { useEffect, useState } from "react";
 import { Agency } from "@prisma/client";
+import { useForm } from "react-hook-form";
+import React, { useEffect, useState } from "react";
 import { NumberInput } from "@tremor/react";
 import { v4 } from "uuid";
-import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { useToast } from "../ui/use-toast";
+
 import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Card,
@@ -25,6 +34,12 @@ import {
   FormLabel,
   FormMessage,
 } from "../ui/form";
+import { useToast } from "../ui/use-toast";
+
+import * as z from "zod";
+import FileUpload from "../global/file-upload";
+import { Input } from "../ui/input";
+import { Switch } from "../ui/switch";
 import {
   deleteAgency,
   initUser,
@@ -32,29 +47,15 @@ import {
   updateAgencyDetails,
   upsertAgency,
 } from "@/lib/queries";
-import * as z from "zod";
-import FileUpload from "../global/file-upload";
-import { Input } from "../ui/input";
-import { Switch } from "../ui/switch";
+import { Button } from "../ui/button";
 import Loading from "../global/loading";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../ui/alert-dialog";
 
 type Props = {
   data?: Partial<Agency>;
 };
 
 const FormSchema = z.object({
-  name: z.string().min(2, { message: "Agency name must be at least 2 chars." }),
+  name: z.string().min(2, { message: "Agency name must be atleast 2 chars." }),
   companyEmail: z.string().min(1),
   companyPhone: z.string().min(1),
   whiteLabel: z.boolean(),
@@ -66,17 +67,14 @@ const FormSchema = z.object({
   agencyLogo: z.string().min(1),
 });
 
-function AgencyDetails({ data }: Props) {
+const AgencyDetails = ({ data }: Props) => {
   const { toast } = useToast();
   const router = useRouter();
-
   const [deletingAgency, setDeletingAgency] = useState(false);
   const form = useForm<z.infer<typeof FormSchema>>({
-    // custom hook for managing forms with ease by defining and validating data structures
     mode: "onChange",
-    resolver: zodResolver(FormSchema), // zodResolver is used in conjunction with the 'react-hook-form' to validate form data against the 'FormSchema'
+    resolver: zodResolver(FormSchema),
     defaultValues: {
-      // The resolver ensures that the form data adheres to the structure and rules defined in the schema before it is processed or submitted
       name: data?.name,
       companyEmail: data?.companyEmail,
       companyPhone: data?.companyPhone,
@@ -97,11 +95,10 @@ function AgencyDetails({ data }: Props) {
     }
   }, [data]);
 
-  // send info to create a stripe account for the new user
   const handleSubmit = async (values: z.infer<typeof FormSchema>) => {
     try {
       let newUserData;
-      let customerId;
+      let custId;
       if (!data?.id) {
         const bodyData = {
           email: values.companyEmail,
@@ -124,52 +121,64 @@ function AgencyDetails({ data }: Props) {
             state: values.zipCode,
           },
         };
-      }
-      // WIP custId
-      newUserData = await initUser({ role: "AGENCY_OWNER" });
-      if (!data?.id) {
-        await upsertAgency({
-          id: data?.id ? data.id : v4(),
-          // customerId: data?.customerId || custId || '',
-          address: values.address,
-          agencyLogo: values.agencyLogo,
-          city: values.city,
-          companyPhone: values.companyPhone,
-          country: values.country,
-          name: values.name,
-          state: values.state,
-          whiteLabel: values.whiteLabel,
-          zipCode: values.zipCode,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          companyEmail: values.companyEmail,
-          connectAccountId: "",
-          goal: 5,
-        });
-        toast({
-          title: "Created Agency",
-        });
-        // if agency is successfully created, cache is cleared
 
+        const customerResponse = await fetch("/api/stripe/create-customer", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(bodyData),
+        });
+        const customerData: { customerId: string } =
+          await customerResponse.json();
+        custId = customerData.customerId;
+      }
+
+      newUserData = await initUser({ role: "AGENCY_OWNER" });
+      if (!data?.customerId && !custId) return;
+
+      const response = await upsertAgency({
+        id: data?.id ? data.id : v4(),
+        customerId: data?.customerId || custId || "",
+        address: values.address,
+        agencyLogo: values.agencyLogo,
+        city: values.city,
+        companyPhone: values.companyPhone,
+        country: values.country,
+        name: values.name,
+        state: values.state,
+        whiteLabel: values.whiteLabel,
+        zipCode: values.zipCode,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        companyEmail: values.companyEmail,
+        connectAccountId: "",
+        goal: 5,
+      });
+      toast({
+        title: "Created Agency",
+      });
+      if (data?.id) return router.refresh();
+      if (response) {
         return router.refresh();
       }
     } catch (error) {
+      console.log(error);
       toast({
         variant: "destructive",
-        title: "Oppsie!",
-        description: "Could not create your agency",
+        title: "Oppse!",
+        description: "could not create your agency",
       });
     }
   };
-
   const handleDeleteAgency = async () => {
     if (!data?.id) return;
     setDeletingAgency(true);
-    // WIP: discontinue the subscription
+    //WIP: discontinue the subscription
     try {
       const response = await deleteAgency(data.id);
       toast({
-        title: "Deleted Agency", // update with sonar
+        title: "Deleted Agency",
         description: "Deleted your agency and all subaccounts",
       });
       router.refresh();
@@ -177,8 +186,8 @@ function AgencyDetails({ data }: Props) {
       console.log(error);
       toast({
         variant: "destructive",
-        title: "Oppsie!",
-        description: "Could not delete your agency",
+        title: "Oppse!",
+        description: "could not delete your agency ",
       });
     }
     setDeletingAgency(false);
@@ -208,7 +217,6 @@ function AgencyDetails({ data }: Props) {
                   <FormItem>
                     <FormLabel>Agency Logo</FormLabel>
                     <FormControl>
-                      {/* Choose file box */}
                       <FileUpload
                         apiEndpoint="agencyLogo"
                         onChange={field.onChange}
@@ -220,7 +228,6 @@ function AgencyDetails({ data }: Props) {
                 )}
               />
               <div className="flex md:flex-row gap-4">
-                {/* Form fields for agency info */}
                 <FormField
                   disabled={isLoading}
                   control={form.control}
@@ -229,8 +236,9 @@ function AgencyDetails({ data }: Props) {
                     <FormItem className="flex-1">
                       <FormLabel>Agency Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your Agency Name" {...field} />
+                        <Input placeholder="Your agency name" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -241,26 +249,25 @@ function AgencyDetails({ data }: Props) {
                     <FormItem className="flex-1">
                       <FormLabel>Agency Email</FormLabel>
                       <FormControl>
-                        <Input
-                          readOnly
-                          placeholder="Your Agency Name"
-                          {...field}
-                        />
+                        <Input readOnly placeholder="Email" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
               <div className="flex md:flex-row gap-4">
                 <FormField
+                  disabled={isLoading}
                   control={form.control}
                   name="companyPhone"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>Agency Phone</FormLabel>
+                      <FormLabel>Agency Phone Number</FormLabel>
                       <FormControl>
                         <Input placeholder="Phone" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -272,11 +279,11 @@ function AgencyDetails({ data }: Props) {
                 name="whiteLabel"
                 render={({ field }) => {
                   return (
-                    <FormItem>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border gap-4 p-4">
                       <div>
                         <FormLabel>Whitelabel Agency</FormLabel>
                         <FormDescription>
-                          Turning on whitelabel mode will show your agency logo
+                          Turning on whilelabel mode will show your agency logo
                           to all sub accounts by default. You can overwrite this
                           functionality through sub account settings.
                         </FormDescription>
@@ -292,24 +299,21 @@ function AgencyDetails({ data }: Props) {
                   );
                 }}
               />
-              {/* Address fields */}
+              <FormField
+                disabled={isLoading}
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="123 st..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="flex md:flex-row gap-4">
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 St..." {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="flex md:flex-row gap-4">
-                {/* Form fields for agency info */}
                 <FormField
                   disabled={isLoading}
                   control={form.control}
@@ -320,6 +324,7 @@ function AgencyDetails({ data }: Props) {
                       <FormControl>
                         <Input placeholder="City" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -333,6 +338,7 @@ function AgencyDetails({ data }: Props) {
                       <FormControl>
                         <Input placeholder="State" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -342,15 +348,17 @@ function AgencyDetails({ data }: Props) {
                   name="zipCode"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>Zip Code</FormLabel>
+                      <FormLabel>Zipcpde</FormLabel>
                       <FormControl>
-                        <Input placeholder="Zip Code" {...field} />
+                        <Input placeholder="Zipcode" {...field} />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
               <FormField
+                disabled={isLoading}
                 control={form.control}
                 name="country"
                 render={({ field }) => (
@@ -359,6 +367,7 @@ function AgencyDetails({ data }: Props) {
                     <FormControl>
                       <Input placeholder="Country" {...field} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -394,11 +403,7 @@ function AgencyDetails({ data }: Props) {
           </Form>
 
           {data?.id && (
-            <div
-              className="flex flex-row items-center
-          justify-between rounded-lg border
-          border-destructive gap-4 p-4 mt-4"
-            >
+            <div className="flex flex-row items-center justify-between rounded-lg border border-destructive gap-4 p-4 mt-4">
               <div>
                 <div>Danger Zone</div>
               </div>
@@ -409,9 +414,7 @@ function AgencyDetails({ data }: Props) {
               </div>
               <AlertDialogTrigger
                 disabled={isLoading || deletingAgency}
-                className="text-red-600 p-2 text-center
-            mt-2 rounded-md hove:bg-red-600
-            hover:text-white whitespace-nowrap"
+                className="text-red-600 p-2 text-center mt-2 rounded-md hove:bg-red-600 hover:text-white whitespace-nowrap"
               >
                 {deletingAgency ? "Deleting..." : "Delete Agency"}
               </AlertDialogTrigger>
@@ -442,6 +445,6 @@ function AgencyDetails({ data }: Props) {
       </Card>
     </AlertDialog>
   );
-}
+};
 
 export default AgencyDetails;
